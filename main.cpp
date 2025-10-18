@@ -5,6 +5,7 @@
 #include <functional>
 #include <chrono>
 #include <format>
+#include <execution>
 
 std::vector<int> generate_random_data(size_t size) {
     std::vector<int> data(size);
@@ -30,6 +31,17 @@ bool multithreads_any_of(std::vector<int> data, std::function<bool(int)> predica
     return true;
 }
 
+template <typename Func>
+long long measure_time(Func func) {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    func();
+    auto end_time = std::chrono::high_resolution_clock::now();
+
+    long long duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+
+    return duration;
+}
+
 void run_experiment(size_t data_size) {
     std::vector<int> data = generate_random_data(data_size);
     int value_to_find = -1;
@@ -38,27 +50,37 @@ void run_experiment(size_t data_size) {
     };
 
     //1
-    // Можливо, потім заміню розрахунок часу на щось інше,
-    // а то забагато повторень.
-    auto start_time = std::chrono::high_resolution_clock::now();
-    bool result = std::any_of(data.begin(), data.end(), predicate);
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = end_time - start_time;
-    long long microsec_duration = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
-    std::cout << microsec_duration << std::endl;
+    long long m_t = measure_time([data, predicate]() {
+        std::any_of(data.begin(), data.end(), predicate);
+    });
 
-
+    std::cout << "\nWithout politics: " << m_t << std::endl;
 
     //2
+    m_t = measure_time([data, predicate]() {
+        std::any_of(std::execution::seq, data.begin(), data.end(), predicate);
+    });
 
+    std::cout << "\nPolitic std::execution::seq: " << m_t << std::endl;
 
+    m_t = measure_time([data, predicate]() {
+        std::any_of(std::execution::par, data.begin(), data.end(), predicate);
+    });
+
+    std::cout << "\nPolitics std::execution::par: " << m_t << std::endl;
+
+    m_t = measure_time([data, predicate]() {
+        std::any_of(std::execution::par_unseq, data.begin(), data.end(), predicate);
+    });
+
+    std::cout << "\nPolitics std::execution::par_unseq: " << m_t << std::endl;
     //3
     
 
 }
 
 int main() {
-    run_experiment(1000);
+    run_experiment(100000000);
 
     return 0;
 }
