@@ -4,9 +4,7 @@
 #include <random>
 #include <functional>
 #include <chrono>
-#include <format>
 #include <execution>
-#include <mutex>
 #include <atomic>
 
 std::vector<int> generate_random_data(size_t size) {
@@ -69,14 +67,11 @@ long long measure_time(Func func) {
 }
 
 void run_experiment(const std::vector<int>& data, const int& value_to_find) {
-    // std::vector<int> data = generate_random_data(data_size);
-    // int value_to_find = -1;
     auto predicate = [value_to_find](int val) {
         return val == value_to_find;
     };
 
     volatile bool res;
-    int op_tr = 0;
     //1
     long long m_t = measure_time([&data, predicate, &res]() {
         res = std::any_of(data.begin(), data.end(), predicate);
@@ -87,7 +82,7 @@ void run_experiment(const std::vector<int>& data, const int& value_to_find) {
     //2
     m_t = measure_time([&data, predicate, &res]() {
         res = std::any_of(std::execution::seq, data.begin(), data.end(), predicate);
-    });;
+    });
 
     std::cout << "Politic std::execution::seq: " << m_t << std::endl;
 
@@ -109,7 +104,7 @@ void run_experiment(const std::vector<int>& data, const int& value_to_find) {
     int best_K = 0;
 
     std::cout << "Speed of own parallel algorithm with different number of threads (K):" << std::endl;
-    for (int k=1; k<=core_count*2+1; ++k) {
+    for (int k=1; k<=core_count+4; ++k) {
         bool res_custom;
         long long time_custom = measure_time([&res_custom, &data, &predicate, k]{
             res_custom = multithreads_any_of(data, predicate, k);
@@ -127,15 +122,14 @@ void run_experiment(const std::vector<int>& data, const int& value_to_find) {
 
 int main() {
     std::vector<size_t> data_sizes = {100'000, 1'000'000, 100'000'00, 100'000'000};
-    std::vector<int> value = {-10, -1};
+    const int inique = -10;
+    const int not_found = -1;
     for (size_t data_size : data_sizes) {
         std::cout << "\n----------------------------------------------" << 
                     "\nData size: " << data_size << std::endl;
         std::vector<int> data = generate_random_data(data_size);
-        data[data_size/2] = value[0];
-        for (int val : value) {
-            run_experiment(data, val);
-        }
+        std::cout << "Element not foud:" << std::endl;
+        run_experiment(data, not_found);
     }
     return 0;
 }
