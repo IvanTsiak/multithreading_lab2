@@ -1,11 +1,13 @@
+// Ivan Tsiak, K-24
+// Compiler: MSVC
 #include <iostream>
 #include <algorithm>
 #include <vector>
 #include <random>
-#include <functional>
 #include <chrono>
 #include <execution>
 #include <atomic>
+#include <iomanip>
 
 std::vector<int> generate_random_data(size_t size) {
     std::vector<int> data(size);
@@ -66,7 +68,7 @@ long long measure_time(Func func) {
     return duration;
 }
 
-void run_experiment(const std::vector<int>& data, const int& value_to_find) {
+void run_experiment(const std::vector<int>& data, int value_to_find) {
     auto predicate = [value_to_find](int val) {
         return val == value_to_find;
     };
@@ -104,6 +106,8 @@ void run_experiment(const std::vector<int>& data, const int& value_to_find) {
     int best_K = 0;
 
     std::cout << "Speed of own parallel algorithm with different number of threads (K):" << std::endl;
+    std::cout << std::left << std::setw(15) << "K" << "Time (us)" << std::endl;
+    std::cout << "--------------------------------" << std::endl;
     for (int k=1; k<=core_count+4; ++k) {
         bool res_custom;
         long long time_custom = measure_time([&res_custom, &data, &predicate, k]{
@@ -114,22 +118,27 @@ void run_experiment(const std::vector<int>& data, const int& value_to_find) {
             best_K = k;
         }
 
-        std::cout << "K = "<< k << ": " << time_custom << std::endl;
+        std::cout << std::left << std::setw(15) << k << time_custom << std::endl;
     }
 
-    std::cout << "Best performance at K = " << best_K << " (" << best_time << " microseconds)\n";
+    std::cout << "\nBest performance at K = " << best_K << " (" << best_time << " microseconds)" << std::endl;
 }
 
 int main() {
-    std::vector<size_t> data_sizes = {100'000, 1'000'000, 100'000'00, 100'000'000};
-    const int inique = -10;
+    std::vector<size_t> data_sizes = {100'000, 1'000'000, 10'000'000, 100'000'000};
+    const int unique = -10;
     const int not_found = -1;
     for (size_t data_size : data_sizes) {
         std::cout << "\n----------------------------------------------" << 
                     "\nData size: " << data_size << std::endl;
         std::vector<int> data = generate_random_data(data_size);
-        std::cout << "Element not foud:" << std::endl;
+        std::cout << "\n_-_-_-_-_-_-_-_-_-_-" << std::endl;
+        std::cout << "Element not found:" << std::endl;
         run_experiment(data, not_found);
+        std::cout << "\n_-_-_-_-_-_-_-_-_-_-" << std::endl;
+        std::cout << "Element in middle: " << std::endl;
+        data[data_size/2] = unique;
+        run_experiment(data, unique);
     }
     return 0;
 }
